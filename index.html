@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pace – AI Personal Productivity Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5f2;--panel:#fff;--ink:#16221d;--mute:#66736c;--line:#dde3de;--acc:#1f6f5c;--acc2:#e8f2ee;--warn:#b4472f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101714;--panel:#18211d;--ink:#e6eee9;--mute:#8fa097;--line:#2a3730;--acc:#4fc0a0;--acc2:#1b2b25;--warn:#e58a72}}
+:root[data-theme="dark"]{--bg:#101714;--panel:#18211d;--ink:#e6eee9;--mute:#8fa097;--line:#2a3730;--acc:#4fc0a0;--acc2:#1b2b25;--warn:#e58a72}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;letter-spacing:-.01em}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:200px 1fr;height:100%}
+nav{padding:20px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;background:var(--panel)}
+nav h1{font-size:26px;padding:0 10px 14px}
+nav button{text-align:left;border:0;background:none;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--mute);font-weight:600}
+nav button.on{background:var(--acc2);color:var(--acc)}
+main{overflow:auto;padding:28px;max-width:100%}
+section{display:none;max-width:820px;margin:0 auto}section.on{display:block}
+.row{display:flex;gap:8px}.row>input{flex:1}
+input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea{resize:vertical;min-height:140px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.ghost{background:none;color:var(--acc);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:16px}
+.stats{display:flex;gap:28px;flex-wrap:wrap;margin-top:6px}
+.stats b{font:700 30px "Bricolage Grotesque",sans-serif;display:block;line-height:1.1}
+.stats span{color:var(--mute);font-size:14px}
+.task{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border:0}.task.done span{text-decoration:line-through;color:var(--mute)}
+.task span{flex:1}.x{background:none;border:0;color:var(--mute);cursor:pointer;font-size:18px}
+.task input{width:auto}
+.msgs{display:flex;flex-direction:column;gap:10px;margin:16px 0;min-height:240px}
+.m{padding:10px 14px;border-radius:12px;max-width:85%;white-space:pre-wrap}
+.m.u{align-self:flex-end;background:var(--acc);color:#fff}
+.m.a{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
+.split{display:grid;grid-template-columns:200px 1fr;gap:16px;margin-top:16px}
+.list button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 4px;cursor:pointer}
+.list button.on{color:var(--acc);font-weight:600}
+.hint{color:var(--mute);font-size:14px;margin:6px 0 0}
+.out{white-space:pre-wrap;margin-top:12px}
+.off{background:var(--acc2);color:var(--warn);padding:8px 12px;border-radius:8px;font-size:14px;margin-top:12px;display:none}
+@media(max-width:680px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px}
+nav h1{display:none}main{padding:16px}.split{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:no-preference){.m{animation:in .2s}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav aria-label="Sections">
+<h1>Pace</h1>
+<button data-v="today" class="on">Today</button>
+<button data-v="chat">Assistant</button>
+<button data-v="notes">Notes</button>
+<button data-v="docs">Documents</button>
+</nav>
+<main>
+<div id="off" class="off">AI features are unavailable in this view. Tasks and notes still work.</div>
+
+<section id="today" class="on">
+<h2>Today</h2>
+<div class="card"><div class="stats">
+<div><b id="sOpen">0</b><span>open tasks</span></div>
+<div><b id="sDone">0</b><span>done today</span></div>
+<div><b id="sNotes">0</b><span>notes</span></div></div>
+<svg id="chart" viewBox="0 0 280 70" width="100%" height="70" role="img" aria-label="Tasks completed in the last 7 days" style="margin-top:14px"></svg>
+<p class="hint">Tasks completed, last 7 days</p></div>
+<div class="card">
+<div class="row"><input id="tIn" placeholder="Add a task" aria-label="New task"><button class="btn" id="tAdd">Add task</button></div>
+<div id="tasks" style="margin-top:8px"></div>
+<p class="hint" id="tEmpty">No tasks yet. Add your first one above.</p>
+<button class="btn ghost" id="plan" style="margin-top:12px">Plan my day with AI</button>
+<div class="out" id="planOut"></div></div>
+</section>
+
+<section id="chat">
+<h2>Assistant</h2>
+<div class="msgs" id="msgs" aria-live="polite"></div>
+<div class="row"><input id="cIn" placeholder="Ask for advice, a plan, or a draft" aria-label="Message"><button class="btn" id="cSend">Send</button></div>
+<p class="hint">The assistant can see your open tasks when you ask about planning.</p>
+</section>
+
+<section id="notes">
+<h2>Notes</h2>
+<div class="split">
+<div><button class="btn" id="nNew" style="width:100%">New note</button><div class="list" id="nList" style="margin-top:8px"></div></div>
+<div id="nEd" style="display:none">
+<input id="nTitle" placeholder="Title" aria-label="Note title">
+<textarea id="nBody" placeholder="Write here" aria-label="Note body" style="margin-top:8px"></textarea>
+<div class="row" style="margin-top:8px"><button class="btn" id="nSum">Summarize</button><button class="btn ghost" id="nDel">Delete note</button></div>
+<div class="out" id="nOut"></div></div>
+<p class="hint" id="nEmpty">Create a note to get started.</p>
+</div>
+</section>
+
+<section id="docs">
+<h2>Documents</h2>
+<div class="card">
+<input type="file" id="dFile" accept=".txt,.md,.csv,.json" aria-label="Upload a text file">
+<p class="hint">Upload a text file or paste text. For a PDF, copy its text and paste it here.</p>
+<textarea id="dText" placeholder="Paste document text" aria-label="Document text" style="margin-top:8px"></textarea>
+<div class="row" style="margin-top:12px"><input id="dQ" placeholder="Ask a question about this document" aria-label="Question"><button class="btn" id="dAsk">Ask</button></div>
+<div class="row" style="margin-top:8px"><button class="btn ghost" id="dSum">Summarize document</button></div>
+<div class="out" id="dOut"></div></div>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+var S={tasks:[],notes:[],doc:"",chat:[],sel:null};
+try{var raw=localStorage.getItem("pace");if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
+function save(){try{localStorage.setItem("pace",JSON.stringify(S))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+var day=function(d){return (d||new Date()).toISOString().slice(0,10)};
+var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)};
+
+/* AI */
+var sample=null;
+sample=function(input,opts){
+ return fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:input})})
+ .then(function(r){return r.json().then(function(d){if(!r.ok)throw {code:"error",message:d.error||"Request failed"};return d})})
+ .then(function(d){if(opts&&opts.onText)opts.onText({text:d.text});return {text:d.text}})
+};
+var SYS="You are Pace, a concise, practical personal productivity assistant. Use plain text, short paragraphs, no markdown headings.\n\n";
+function ai(input,onText,btn){
+ if(!sample){$("off").style.display="block";return Promise.reject()}
+ if(btn)btn.disabled=true;
+ return sample(input,{cache:false,onText:function(r){onText(r.text)}}).then(function(r){onText(r.text);return r.text})
+ .catch(function(e){onText("Could not reach the AI"+(e&&e.code==="not_granted"?": permission was not granted.":". Try again."))})
+ .finally(function(){if(btn)btn.disabled=false});
+}
+
+/* nav */
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){
+ document.querySelectorAll("nav button,section").forEach(function(x){x.classList.remove("on")});
+ b.classList.add("on");$(b.dataset.v).classList.add("on")}});
+
+/* tasks + dashboard */
+function openList(){return S.tasks.filter(function(t){return !t.done})}
+function renderTasks(){
+ var h=$("tasks");h.innerHTML="";
+ S.tasks.forEach(function(t){
+  var d=document.createElement("div");d.className="task"+(t.done?" done":"");
+  var c=document.createElement("input");c.type="checkbox";c.checked=!!t.done;c.setAttribute("aria-label","Complete task");
+  c.onchange=function(){t.done=c.checked;t.at=c.checked?day():null;save();renderTasks()};
+  var s=document.createElement("span");s.textContent=t.text;
+  var x=document.createElement("button");x.className="x";x.textContent="×";x.setAttribute("aria-label","Delete task");
+  x.onclick=function(){S.tasks=S.tasks.filter(function(q){return q!==t});save();renderTasks()};
+  d.append(c,s,x);h.appendChild(d)});
+ $("tEmpty").style.display=S.tasks.length?"none":"block";
+ $("sOpen").textContent=openList().length;
+ $("sDone").textContent=S.tasks.filter(function(t){return t.at===day()}).length;
+ $("sNotes").textContent=S.notes.length;
+ var days=[],i;for(i=6;i>=0;i--){var d2=new Date();d2.setDate(d2.getDate()-i);days.push(day(d2))}
+ var counts=days.map(function(k){return S.tasks.filter(function(t){return t.at===k}).length});
+ var mx=Math.max(1,Math.max.apply(null,counts)),svg="";
+ counts.forEach(function(n,j){var hh=Math.max(3,n/mx*56);svg+='<rect x="'+(j*40+6)+'" y="'+(62-hh)+'" width="28" height="'+hh+'" rx="4" fill="var(--acc)" opacity="'+(n?1:.25)+'"/>'});
+ $("chart").innerHTML=svg;
+}
+function addTask(){var v=$("tIn").value.trim();if(!v)return;S.tasks.unshift({id:uid(),text:v,done:false});$("tIn").value="";save();renderTasks()}
+$("tAdd").onclick=addTask;$("tIn").onkeydown=function(e){if(e.key==="Enter")addTask()};
+$("plan").onclick=function(){
+ var o=openList().map(function(t){return "- "+t.text}).join("\n");
+ if(!o){$("planOut").textContent="Add a few tasks first, then I can plan your day.";return}
+ ai(SYS+"Here are my open tasks:\n"+o+"\n\nOrder them by priority and give me a realistic plan for today with time blocks and one tip for staying focused.",function(t){$("planOut").textContent=t},$("plan"));
+};
+
+/* chat */
+function renderChat(){
+ var h=$("msgs");h.innerHTML="";
+ if(!S.chat.length){var p=document.createElement("div");p.className="m a";p.textContent="Hi, I'm Pace. Ask me to plan your week, break down a goal, or draft a message.";h.appendChild(p)}
+ S.chat.forEach(function(m){var d=document.createElement("div");d.className="m "+(m.r==="user"?"u":"a");d.textContent=m.c;h.appendChild(d)});
+ h.lastChild.scrollIntoView({block:"nearest"});
+}
+function send(){
+ var v=$("cIn").value.trim();if(!v)return;$("cIn").value="";
+ S.chat.push({r:"user",c:v});var reply={r:"assistant",c:"Thinking..."};S.chat.push(reply);renderChat();
+ var turns=S.chat.slice(0,-1).slice(-12).map(function(m){return {role:m.r,content:m.c}});
+ var o=openList().map(function(t){return "- "+t.text}).join("\n");
+ turns[0]={role:"user",content:SYS+"My open tasks:\n"+(o||"(none)")+"\n\n"+turns[0].content};
+ if(turns[0].role!=="user"){turns.shift()}
+ ai(turns,function(t){reply.c=t;renderChat()},$("cSend")).then(save,save);
+}
+$("cSend").onclick=send;$("cIn").onkeydown=function(e){if(e.key==="Enter")send()};
+
+/* notes */
+function cur(){return S.notes.filter(function(n){return n.id===S.sel})[0]}
+function renderNotes(){
+ var l=$("nList");l.innerHTML="";
+ S.notes.forEach(function(n){var b=document.createElement("button");b.textContent=n.title||"Untitled";b.className=n.id===S.sel?"on":"";b.onclick=function(){S.sel=n.id;$("nOut").textContent=n.sum||"";renderNotes()};l.appendChild(b)});
+ var n=cur();$("nEd").style.display=n?"block":"none";$("nEmpty").style.display=n?"none":"block";
+ if(n){$("nTitle").value=n.title;$("nBody").value=n.body}
+ $("sNotes").textContent=S.notes.length;
+}
+$("nNew").onclick=function(){var n={id:uid(),title:"",body:""};S.notes.unshift(n);S.sel=n.id;$("nOut").textContent="";save();renderNotes();$("nTitle").focus()};
+$("nTitle").oninput=function(){var n=cur();if(n){n.title=this.value;save();var b=$("nList").querySelector(".on");if(b)b.textContent=n.title||"Untitled"}};
+$("nBody").oninput=function(){var n=cur();if(n){n.body=this.value;save()}};
+$("nDel").onclick=function(){S.notes=S.notes.filter(function(n){return n.id!==S.sel});S.sel=null;$("nOut").textContent="";save();renderNotes()};
+$("nSum").onclick=function(){var n=cur();if(!n||!n.body.trim()){$("nOut").textContent="Write something in the note first.";return}
+ ai(SYS+"Summarize this note in 3 bullet-style lines, then list any action items.\n\n"+n.body,function(t){$("nOut").textContent=t;n.sum=t},$("nSum")).then(save,save)};
+
+/* documents */
+$("dText").value=S.doc;
+$("dText").oninput=function(){S.doc=this.value;save()};
+$("dFile").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){S.doc=String(r.result);$("dText").value=S.doc;save()};r.readAsText(f)};
+function docAi(task,btn){
+ var t=$("dText").value.trim();if(!t){$("dOut").textContent="Add document text first.";return}
+ ai(SYS+"Document:\n"+t.slice(0,30000)+"\n\n"+task+" Answer only from the document, and say so if the answer is not in it.",function(x){$("dOut").textContent=x},btn);
+}
+$("dAsk").onclick=function(){var q=$("dQ").value.trim();if(!q){$("dOut").textContent="Type a question first.";return}docAi("Question: "+q,$("dAsk"))};
+$("dQ").onkeydown=function(e){if(e.key==="Enter")$("dAsk").click()};
+$("dSum").onclick=function(){docAi("Summarize the document: key points, then action items.",$("dSum"))};
+
+renderTasks();renderChat();renderNotes();
+})();
+</script>
+</body>
+</html>
